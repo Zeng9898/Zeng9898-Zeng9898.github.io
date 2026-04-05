@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import logoImage from '../assets/logo.png';
 import homeIcon from '../assets/home_icon.png';
 import profileIcon from '../assets/profile_icon.png';
@@ -10,10 +11,10 @@ const MENU_ITEMS = [
 export default function SideNav() {
   return (
     <aside className="w-[260px] shrink-0 bg-[#F7EAD0] flex flex-col min-h-screen border-r-2 border-[#d4c9b8]">
-      <div className="p-12 flex justify-center">
+      <Link to="/" className="p-12 flex justify-center">
         <img src={logoImage} alt="Argu as Scientists" className="h-20 w-auto object-contain" />
-      </div>
-      <nav className="p-3 flex flex-col gap-1">
+      </Link>
+      <nav className="p-3 flex flex-col gap-1 flex-1">
         {MENU_ITEMS.map((item) => (
           <button
             key={item.id}

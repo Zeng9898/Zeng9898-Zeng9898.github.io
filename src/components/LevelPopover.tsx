@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export type LevelForPopover = {
   id: string;
@@ -18,6 +19,7 @@ type LevelPopoverProps = {
 const GAP_BELOW_BUTTON = 20;
 
 export default function LevelPopover({ level, anchorRect, onClose }: LevelPopoverProps) {
+  const navigate = useNavigate();
   const [entered, setEntered] = useState(false);
   const firstButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -97,8 +99,8 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
             ref={firstButtonRef}
             type="button"
             onClick={() => {
-              console.log('start', level.id);
               onClose();
+              navigate('/chat');
             }}
             className="w-full rounded-xl bg-white py-3 text-[#FF4A2A] font-semibold transition-opacity hover:opacity-90 active:opacity-95 focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#58CC02]"
           >

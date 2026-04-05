@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import heroImage from '../assets/hero.png';
 
 export default function Hero() {
@@ -19,13 +20,12 @@ export default function Hero() {
             主張、證據、推理一步一步，讓你的回答更有說服力。
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              className="w-full sm:w-auto rounded-xl px-6 py-3 bg-[#D18D52] text-[#262a34] font-medium shadow-[0px_6px_0_0_#a66b38] hover:brightness-110 transition-[filter,box-shadow]"
-              onClick={() => console.log('開始練習')}
+            <Link
+              to="/home"
+              className="w-full sm:w-auto text-center rounded-xl px-6 py-3 bg-[#D18D52] text-[#262a34] font-medium shadow-[0px_6px_0_0_#a66b38] hover:brightness-110 transition-[filter,box-shadow]"
             >
               開始練習
-            </button>
+            </Link>
           </div>
         </div>
       </div>
