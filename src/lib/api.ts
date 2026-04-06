@@ -3,6 +3,7 @@ export const API_BASE = (
 ).replace(/\/$/, '');
 
 export const AUTH_STORAGE_KEY = 'scientific_argumentation_auth';
+const IS_NGROK_HOST = /(?:^https?:\/\/)?[^/]*ngrok-free\.app$/i.test(API_BASE);
 
 export type ApiAuthState = {
   token: string;
@@ -26,4 +27,12 @@ export function getStoredAuth(): ApiAuthState | null {
 export function buildAuthHeaders(token?: string | null): Record<string, string> {
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
+}
+
+export function buildApiHeaders(token?: string | null): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    ...(IS_NGROK_HOST ? { 'ngrok-skip-browser-warning': '1' } : {}),
+    ...buildAuthHeaders(token),
+  };
 }

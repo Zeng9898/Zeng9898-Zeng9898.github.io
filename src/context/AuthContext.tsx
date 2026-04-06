@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { API_BASE, AUTH_STORAGE_KEY, buildAuthHeaders, getStoredAuth } from '../lib/api';
+import { API_BASE, AUTH_STORAGE_KEY, buildApiHeaders, getStoredAuth } from '../lib/api';
 
 export type StudentGroup = 'experiment' | 'control';
 
@@ -61,10 +61,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     const res = await fetch(`${API_BASE}/api/auth/me`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...buildAuthHeaders(activeToken),
-      },
+      headers: buildApiHeaders(activeToken),
     });
 
     const data = await res.json().catch(() => ({}));
@@ -79,7 +76,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (studentNumber: string, password: string) => {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildApiHeaders(),
       body: JSON.stringify({ studentNumber, password }),
     });
 

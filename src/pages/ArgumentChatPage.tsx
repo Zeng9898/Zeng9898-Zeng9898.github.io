@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import owlIntroGif from '../assets/owl_intro.gif';
 import chart13Img from '../assets/1-3chart.png';
 import { useAuth } from '../context/AuthContext';
-import { API_BASE, buildAuthHeaders } from '../lib/api';
+import { API_BASE, buildApiHeaders } from '../lib/api';
 // TODO: 替換成實際的貓頭鷹陪伴 GIF（可與 owl_intro.gif 不同，建議用待機動作）
 const OWL_HINT_GIF = owlIntroGif;
 
@@ -198,10 +198,7 @@ export default function ArgumentChatPage() {
 
     const res = await fetch(`${API_BASE}/api/chat/init`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...buildAuthHeaders(token),
-      },
+      headers: buildApiHeaders(token),
       body: JSON.stringify({
         questionIndex: cfg.id,
         openingMessage: cfg.initialMessage,
@@ -306,10 +303,7 @@ export default function ArgumentChatPage() {
       try {
         const res = await fetch(`${API_BASE}/api/reflection`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...buildAuthHeaders(token),
-          },
+          headers: buildApiHeaders(token),
           body: JSON.stringify({ userMessage: '（反思開始）', conversationId: null }),
         });
         const data = await res.json().catch(() => ({}));
@@ -346,10 +340,7 @@ export default function ArgumentChatPage() {
     try {
       const res = await fetch(`${API_BASE}/api/reflection`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...buildAuthHeaders(token),
-        },
+        headers: buildApiHeaders(token),
         body: JSON.stringify({ userMessage: text, conversationId: reflectionConversationId }),
       });
       const data = await res.json().catch(() => ({}));
@@ -429,10 +420,7 @@ export default function ArgumentChatPage() {
     try {
       const res = await fetch(chatUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...buildAuthHeaders(token),
-        },
+        headers: buildApiHeaders(token),
         body: JSON.stringify({
           userMessage: text,
           questionIndex,
