@@ -1037,7 +1037,7 @@ export default function ArgumentChatPage() {
                       ) : null}
                     </div>
                     {/* 右頁輸入區 */}
-                    <div className="relative z-10 shrink-0 flex items-center gap-2 px-5 py-2 border-t border-white/8">
+                    <div className="relative z-10 shrink-0 flex items-center gap-3 px-6 py-4 border-t border-white/8">
                       <input
                         ref={reflectionInputRef}
                         type="text"
@@ -1046,14 +1046,14 @@ export default function ArgumentChatPage() {
                         onKeyDown={handleReflectionKeyDown}
                         placeholder="說說你的想法..."
                         disabled={reflectionIsLoading}
-                        className="flex-1 min-w-0 bg-transparent text-sm text-white/80 placeholder-white/25 focus:outline-none disabled:opacity-40"
+                        className="flex-1 min-w-0 rounded-xl bg-white/8 px-5 py-4 text-base text-white/85 placeholder-white/25 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)] focus:outline-none focus:ring-2 focus:ring-[#f7c945]/70 disabled:opacity-40"
                         aria-label="輸入反思內容"
                       />
                       <button
                         type="button"
                         onClick={handleReflectionSend}
                         disabled={reflectionIsLoading || !reflectionInput.trim()}
-                        className="shrink-0 rounded-lg bg-[#f7c945]/80 px-3 py-1.5 text-xs font-semibold text-[#1a1200] shadow-[0_2px_0_0_rgba(180,140,0,0.5)] hover:bg-[#f7c945] active:translate-y-px active:shadow-none disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="shrink-0 rounded-xl bg-[#FFE07A] px-6 py-4 text-base font-semibold text-[#1a1200] shadow-[0_4px_0_0_rgba(225,170,18,0.98)] hover:bg-[#FFEA98] active:translate-y-px active:shadow-none disabled:bg-[#F2D46A] disabled:text-[#4d3a09] disabled:shadow-[0_4px_0_0_rgba(171,127,12,0.78)] disabled:opacity-100 disabled:cursor-not-allowed transition-colors"
                       >
                         送出
                       </button>
