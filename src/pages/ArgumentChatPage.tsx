@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import owlIntroGif from '../assets/owl_intro.gif';
 import chart13Img from '../assets/1-3chart.png';
+import { useAuth } from '../context/AuthContext';
+import { API_BASE, buildAuthHeaders } from '../lib/api';
 // TODO: 替換成實際的貓頭鷹陪伴 GIF（可與 owl_intro.gif 不同，建議用待機動作）
 const OWL_HINT_GIF = owlIntroGif;
 
@@ -10,6 +12,22 @@ type ChatMessage = {
   role: 'ai' | 'student';
   text: string;
   isLoading?: boolean;
+};
+
+type InitApiMessage = {
+  id?: number;
+  role?: string;
+  text?: string;
+};
+
+type InitConversationResult = {
+  conversationId: string;
+  messages: ChatMessage[];
+  phase: string;
+  step: number;
+  stage: string;
+  hintLevel: number | null;
+  requiresRestatement: boolean | null;
 };
 
 type EntryStage = 'intro' | 'scenario' | 'chat';
@@ -34,36 +52,50 @@ const QUESTION_CONFIGS: QuestionConfig[] = [
   {
     id: 1,
     title: '論證議題 2',
-    initialMessage: `你判斷出現「溶解現象」的標準是什麼？哪些是溶解現象？這些物質能被取回嗎？
-請提出你的主張並說明原因。`,
+    initialMessage: `哪些是溶解現象？這些物質能被取回嗎？請提出你的主張，也就是你的看法`,
     scenarioText: `請判斷以下生活中處理食物的過程，哪些是「溶解現象」？
 A.煮湯加鹽巴 B.熱湯加粗粒黑胡椒 C.把米煮成稀飯
 D.在水中加維他命C錠 E.在豆漿中加入砂糖 F.奶茶加珍珠
 
-CER 引導問題：你判斷出現「溶解現象」的標準是什麼？這些物質能被取回嗎？
+你判斷出現「溶解現象」的標準是什麼？這些物質能被取回嗎？
 請提出你的主張並說明原因。`,
   },
   {
     id: 2,
     title: '論證議題 3',
-    initialMessage: '請對照圖甲與圖乙的數據趨勢，你覺得妹妹說「糖也跟著消失了」對嗎？你先說說你的想法，為什麼呢？',
+    initialMessage: '請對照圖甲與圖乙的數據趨勢，你覺得妹妹說「糖也跟著消失了」對嗎？你覺得妹妹說得對嗎？先說說你的「主張」，也就是你的看法',
     scenarioText:
       '初始條件：將一杯含有 10 克糖的 110 克糖水（含糖和水）放在陽光下。\n\n圖甲（折線圖）：X 軸為「曝曬天數」，Y 軸為「整杯糖水的總重量」，趨勢線逐日往下降。\n圖乙（折線圖）：X 軸為「曝曬天數」，Y 軸為「杯底析出固體砂糖重量」，前幾天為 0，接著逐日上升，最終停留在 10 克。\n\n妹妹看著圖甲的數據下降，哭著說：「陽光把我的糖水變不見了！裡面的糖也跟著消失了！」\n對照圖甲與圖乙的數據趨勢，你覺得妹妹說「糖也跟著消失了」對嗎？你先說說你的想法，為什麼呢？',
     scenarioImage: chart13Img,
   },
 ];
 
-const ACTIVE_QUESTION_CONFIGS = QUESTION_CONFIGS.slice(2);
+const ACTIVE_QUESTION_CONFIGS = [QUESTION_CONFIGS[2], QUESTION_CONFIGS[1]];
 
 /** 根據題目設定取初始訊息陣列 */
 function makeInitialMessages(cfg: QuestionConfig): ChatMessage[] {
   return [{ id: '1', role: 'ai', text: cfg.initialMessage }];
 }
 
-// 單題組架構：本題 10 steps = 100%
-const STEPS_PER_SET = 10;
+function mapApiMessages(messages: InitApiMessage[], fallbackMessages: ChatMessage[]): ChatMessage[] {
+  const normalized = messages
+    .filter((msg): msg is Required<Pick<InitApiMessage, 'role' | 'text'>> & InitApiMessage => {
+      return typeof msg.role === 'string' && typeof msg.text === 'string' && msg.text.trim().length > 0;
+    })
+    .map((msg, index) => ({
+      id: typeof msg.id === 'number' ? `db-${msg.id}` : `restored-${index}`,
+      role: msg.role === 'assistant' ? 'ai' as const : msg.role === 'student' ? 'student' as const : null,
+      text: msg.text,
+    }))
+    .filter((msg): msg is ChatMessage => msg.role !== null);
+
+  return normalized.length > 0 ? normalized : fallbackMessages;
+}
+
+// 兩題組架構：每組 7 steps，共 14 steps = 100%
+const STEPS_PER_SET = 7;
 const TOTAL_SETS = ACTIVE_QUESTION_CONFIGS.length;
-const TOTAL_STEPS = STEPS_PER_SET * TOTAL_SETS; // 10
+const TOTAL_STEPS = STEPS_PER_SET * TOTAL_SETS; // 14
 const STEP_PROGRESS = (s: number) => Math.round((s / TOTAL_STEPS) * 100);
 // 每一組的進度閾值由 useEffect 動態計算：(currentSet * STEPS_PER_SET / TOTAL_STEPS) * 100
 
@@ -91,12 +123,11 @@ const FAKE_RESULT = {
   overallComment: '你已能提出明確主張，若能讓證據與推理之間的連結更完整，論證會更有說服力。',
 };
 
-// 開發時未設定則用本地後端；production 由 .env.production 提供
-const API_BASE = (import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? 'http://localhost:3000' : '')).replace(/\/$/, '');
-
 // ──────────────────────────────────────────────────────────────────────────────
 
 export default function ArgumentChatPage() {
+  const { token, logout } = useAuth();
+  const questionIds = ACTIVE_QUESTION_CONFIGS.map((cfg) => cfg.id);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [progress, setProgress] = useState(0);
@@ -104,13 +135,13 @@ export default function ArgumentChatPage() {
   const [showBonus, setShowBonus] = useState<number | null>(null);
   const [bonusVisible, setBonusVisible] = useState(false);
 
-  const [conversationIdsByQuestion, setConversationIdsByQuestion] = useState<Record<number, string | null>>({
-    2: null,
-  });
+  const [conversationIdsByQuestion, setConversationIdsByQuestion] = useState<Record<number, string | null>>(
+    () => Object.fromEntries(questionIds.map((id) => [id, null])) as Record<number, string | null>
+  );
   // 各題完整聊天記錄（切題或結算時快照）
-  const [messagesByQuestion, setMessagesByQuestion] = useState<Record<number, ChatMessage[]>>({
-    2: [],
-  });
+  const [messagesByQuestion, setMessagesByQuestion] = useState<Record<number, ChatMessage[]>>(
+    () => Object.fromEntries(questionIds.map((id) => [id, []])) as Record<number, ChatMessage[]>
+  );
   const [phase, setPhase] = useState('');
   const [step, setStep] = useState(0);
   const [stage, setStage] = useState('');
@@ -140,7 +171,7 @@ export default function ArgumentChatPage() {
 
   const navigate = useNavigate();
   const chatStreamRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const isChatStage = entryStage === 'chat';
   const isArgumentChatActive = isChatStage && flowStage === 'chat';
   const isChatOrBetween = isChatStage && (flowStage === 'chat' || flowStage === 'between-sets');
@@ -149,6 +180,67 @@ export default function ArgumentChatPage() {
     : isLoading && flowStage === 'chat'
       ? [...messages, { id: 'loading', role: 'ai' as const, text: '', isLoading: true }]
       : messages;
+
+  const initializeQuestionConversation = async (cfg: QuestionConfig) => {
+    const existingConversationId = conversationIdsByQuestion[cfg.id];
+    const existingMessages = messagesByQuestion[cfg.id] ?? [];
+    if (existingConversationId && existingMessages.length > 0) {
+      return {
+        conversationId: existingConversationId,
+        messages: existingMessages,
+        phase: '',
+        step: 0,
+        stage: '',
+        hintLevel: null,
+        requiresRestatement: null,
+      } satisfies InitConversationResult;
+    }
+
+    const res = await fetch(`${API_BASE}/api/chat/init`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...buildAuthHeaders(token),
+      },
+      body: JSON.stringify({
+        questionIndex: cfg.id,
+        openingMessage: cfg.initialMessage,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      logout();
+      navigate('/', { replace: true });
+      throw new Error('登入已失效');
+    }
+    if (!res.ok || data.error || typeof data.conversationId !== 'string') {
+      throw new Error(typeof data.error === 'string' ? data.error : '初始化題目失敗');
+    }
+
+    const fallbackMessages = makeInitialMessages(cfg);
+    const restoredMessages = mapApiMessages(
+      Array.isArray(data.messages) ? data.messages as InitApiMessage[] : [],
+      fallbackMessages,
+    );
+
+    setConversationIdsByQuestion((prev) => ({
+      ...prev,
+      [cfg.id]: data.conversationId,
+    }));
+    setMessagesByQuestion((prev) => ({
+      ...prev,
+      [cfg.id]: restoredMessages,
+    }));
+    return {
+      conversationId: data.conversationId,
+      messages: restoredMessages,
+      phase: typeof data.phase === 'string' ? data.phase : '',
+      step: typeof data.step === 'number' ? data.step : 0,
+      stage: typeof data.stage === 'string' ? data.stage : '',
+      hintLevel: typeof data.hintLevel === 'number' ? data.hintLevel : null,
+      requiresRestatement: typeof data.requiresRestatement === 'boolean' ? data.requiresRestatement : null,
+    } satisfies InitConversationResult;
+  };
 
   useEffect(() => {
     if (!isBumping) return;
@@ -214,10 +306,18 @@ export default function ArgumentChatPage() {
       try {
         const res = await fetch(`${API_BASE}/api/reflection`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...buildAuthHeaders(token),
+          },
           body: JSON.stringify({ userMessage: '（反思開始）', conversationId: null }),
         });
         const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          logout();
+          navigate('/', { replace: true });
+          return;
+        }
         if (!res.ok || data.error) return;
         setReflectionConversationId(data.conversationId ?? null);
         if (typeof data.assistantMessage === 'string' && data.assistantMessage.trim()) {
@@ -246,10 +346,18 @@ export default function ArgumentChatPage() {
     try {
       const res = await fetch(`${API_BASE}/api/reflection`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...buildAuthHeaders(token),
+        },
         body: JSON.stringify({ userMessage: text, conversationId: reflectionConversationId }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        logout();
+        navigate('/', { replace: true });
+        return;
+      }
       if (!res.ok || data.error) {
         const errMsg = typeof data.error === 'string' ? data.error : '請求失敗';
         setReflectionMessages((prev) => [
@@ -321,7 +429,10 @@ export default function ArgumentChatPage() {
     try {
       const res = await fetch(chatUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...buildAuthHeaders(token),
+        },
         body: JSON.stringify({
           userMessage: text,
           questionIndex,
@@ -329,6 +440,11 @@ export default function ArgumentChatPage() {
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        logout();
+        navigate('/', { replace: true });
+        return;
+      }
       if (!res.ok || data.error) {
         const errMsg = typeof data.error === 'string' ? data.error : '請求失敗';
         setMessages((prev) => [
@@ -383,8 +499,8 @@ export default function ArgumentChatPage() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSend();
     }
@@ -394,34 +510,52 @@ export default function ArgumentChatPage() {
     setEntryStage('scenario');
   };
 
-  const handleStartChallenge = () => {
-    setEntryStage('chat');
-    setFlowStage('chat');
-    setScenarioExpanded(false);
-    setMessages(makeInitialMessages(ACTIVE_QUESTION_CONFIGS[0]));
-    requestAnimationFrame(() => inputRef.current?.focus());
+  const handleStartChallenge = async () => {
+    const initialCfg = ACTIVE_QUESTION_CONFIGS[0];
+    setErrorText('');
+    try {
+      const init = await initializeQuestionConversation(initialCfg);
+      setEntryStage('chat');
+      setFlowStage('chat');
+      setScenarioExpanded(false);
+      setMessages(init.messages);
+      setPhase(init.phase);
+      setStep(init.step);
+      setStage(init.stage);
+      setHintLevel(init.hintLevel);
+      setRequiresRestatement(init.requiresRestatement);
+      setProgress(STEP_PROGRESS(init.step));
+      requestAnimationFrame(() => inputRef.current?.focus());
+    } catch (err) {
+      setErrorText(err instanceof Error ? err.message : '初始化題目失敗');
+    }
   };
 
   const handleNextSet = () => {
     setFlowStage('next-scenario');
   };
 
-  const handleStartNextChallenge = () => {
+  const handleStartNextChallenge = async () => {
     const nextSet = currentSet + 1;
     const nextCfg = ACTIVE_QUESTION_CONFIGS[nextSet - 1] ?? ACTIVE_QUESTION_CONFIGS[ACTIVE_QUESTION_CONFIGS.length - 1];
-    // 切題前先快照當前題的聊天記錄
-    setMessagesByQuestion((prev) => ({ ...prev, [questionIndex]: messages }));
-    setCurrentSet(nextSet);
-    // 各題 conversationId 獨立保留，不互相清除
-    setStep(0);
-    setPhase('');
-    setStage('');
-    setHintLevel(null);
-    setRequiresRestatement(null);
     setErrorText('');
-    setFlowStage('chat');
-    setMessages(makeInitialMessages(nextCfg));
-    requestAnimationFrame(() => inputRef.current?.focus());
+    try {
+      const init = await initializeQuestionConversation(nextCfg);
+      // 切題前先快照當前題的聊天記錄
+      setMessagesByQuestion((prev) => ({ ...prev, [questionIndex]: messages }));
+      setCurrentSet(nextSet);
+      setStep(init.step);
+      setPhase(init.phase);
+      setStage(init.stage);
+      setHintLevel(init.hintLevel);
+      setRequiresRestatement(init.requiresRestatement);
+      setProgress(STEP_PROGRESS(((nextSet - 1) * STEPS_PER_SET) + init.step));
+      setFlowStage('chat');
+      setMessages(init.messages);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    } catch (err) {
+      setErrorText(err instanceof Error ? err.message : '初始化題目失敗');
+    }
   };
 
   return (
@@ -465,7 +599,7 @@ export default function ArgumentChatPage() {
               <span className="text-white/90 text-base font-bold tabular-nums">{progress}%</span>
               {(phase || step > 0) && (
                 <span className="text-white/60 text-xs">
-                  {PHASE_LABEL[phase] || phase || '—'} {step > 0 ? `${step}/${TOTAL_STEPS}` : ''}
+                  {PHASE_LABEL[phase] || phase || '—'} {step > 0 ? `${step}/${STEPS_PER_SET}` : ''}
                 </span>
               )}
               {stage ? (
@@ -543,7 +677,7 @@ export default function ArgumentChatPage() {
                   <img
                     src={ACTIVE_QUESTION_CONFIGS[0].scenarioImage}
                     alt="情境圖表"
-                    className="mt-6 mx-auto block w-full max-w-[480px] md:max-w-[600px] h-auto rounded-xl border border-white/10"
+                    className="mt-6 mx-auto block w-full max-w-[340px] md:max-w-[420px] h-auto rounded-xl border border-white/10"
                   />
                 )}
                 <div className="mt-10 flex justify-center">
@@ -596,7 +730,7 @@ export default function ArgumentChatPage() {
                             <img
                               src={cfg.scenarioImage}
                               alt="情境圖表"
-                              className="mt-4 block w-full max-w-[400px] md:max-w-[520px] h-auto rounded-lg border border-white/10"
+                              className="mt-4 block w-full max-w-[300px] md:max-w-[380px] h-auto rounded-lg border border-white/10"
                             />
                           )}
                         </>
@@ -722,7 +856,7 @@ export default function ArgumentChatPage() {
                         <img
                           src={cfg.scenarioImage}
                           alt="情境圖表"
-                          className="mt-6 mx-auto block w-full max-w-[480px] md:max-w-[600px] h-auto rounded-xl border border-white/10"
+                          className="mt-6 mx-auto block w-full max-w-[340px] md:max-w-[420px] h-auto rounded-xl border border-white/10"
                         />
                       )}
                     </>
@@ -970,15 +1104,15 @@ export default function ArgumentChatPage() {
               {errorText ? (
                 <p className="text-red-400 text-sm mb-2" role="alert">{errorText}</p>
               ) : null}
-              <div className="flex gap-3 items-center">
-                <input
+              <div className="flex gap-3 items-stretch">
+                <textarea
                   ref={inputRef}
-                  type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="輸入你的想法..."
-                  className="flex-1 min-w-0 rounded-xl bg-white/10 border border-white/20 px-4 py-4 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#58CC02] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
+                  rows={2}
+                  className="flex-1 min-w-0 resize-none rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white leading-6 placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#58CC02] focus:border-transparent disabled:opacity-60 disabled:cursor-not-allowed"
                   aria-label="輸入訊息"
                   disabled={entryStage !== 'chat' || flowStage !== 'chat'}
                 />
@@ -986,7 +1120,7 @@ export default function ArgumentChatPage() {
                   type="button"
                   onClick={handleSend}
                   disabled={isLoading || entryStage !== 'chat' || flowStage !== 'chat'}
-                  className="shrink-0 rounded-xl bg-[#58CC02] text-white font-semibold px-6 py-4 shadow-[0_4px_0_0_#3d9a02] hover:opacity-90 active:translate-y-[3px] active:shadow-[0_1px_0_0_#3d9a02] focus-visible:outline focus-visible:ring-2 focus-visible:ring-white disabled:opacity-60 disabled:cursor-not-allowed transition-opacity min-w-29 min-h-14 flex items-center justify-center box-border"
+                  className="shrink-0 self-stretch rounded-xl bg-[#58CC02] text-white font-semibold px-6 shadow-[0_4px_0_0_#3d9a02] hover:opacity-90 active:translate-y-[3px] active:shadow-[0_1px_0_0_#3d9a02] focus-visible:outline focus-visible:ring-2 focus-visible:ring-white disabled:opacity-60 disabled:cursor-not-allowed transition-opacity min-w-29 flex items-center justify-center box-border"
                 >
                   <span className="flex min-h-6 items-center justify-center">
                     {flowStage === 'settling' ? (
@@ -1011,28 +1145,30 @@ export default function ArgumentChatPage() {
       {/* 貓頭鷹博士提示區：固定在右下角，input bar 正上方，只在正式聊天時顯示 */}
       {isArgumentChatActive && (
         <div
-          className="fixed bottom-[88px] z-20 flex flex-col items-end gap-1 animate-[fade-in_0.7s_ease-out_forwards] pointer-events-none"
-          style={{ right: 'max(1rem, calc((100vw - 56rem) / 2 + 3.375rem))' }}
+          className="fixed bottom-[88px] z-20 pointer-events-none animate-[fade-in_0.7s_ease-out_forwards]"
+          style={{ right: 'max(0.5rem, calc((100vw - 56rem) / 2 + 0.75rem))' }}
         >
-          {/* 對話泡泡 */}
-          <div
-            className="relative max-w-[220px] rounded-[20px] border border-white/15 bg-[#0f1d20] px-4 py-3 shadow-lg"
-            style={isOwlSpeaking ? { animation: 'owl-pop 0.4s ease-out forwards' } : undefined}
-          >
-            {/* 向下尖角，指向貓頭鷹 */}
+          <div className="relative">
+            {/* 對話泡泡：absolute 定位在 owl 正上方，left-0 對齊 owl 左邊，往右延伸 */}
             <div
-              className="absolute bottom-[-8px] right-8 h-4 w-4 rotate-45 border-b border-r border-white/15 bg-[#0f1d20]"
-              aria-hidden
+              className="absolute bottom-full left-0 mb-2 min-w-[160px] max-w-[220px] rounded-[20px] border border-white/15 bg-[#0f1d20] px-4 py-3 shadow-lg"
+              style={isOwlSpeaking ? { animation: 'owl-pop 0.4s ease-out forwards' } : undefined}
+            >
+              {/* 向下尖角，左側，指向下方貓頭鷹 */}
+              <div
+                className="absolute bottom-[-7px] left-6 h-3 w-3 rotate-45 border-b border-r border-white/15 bg-[#0f1d20]"
+                aria-hidden
+              />
+              <p className="text-sm font-semibold leading-6 text-white/90">{owlHint}</p>
+            </div>
+            {/* 貓頭鷹 GIF：位置由外層 fixed right 決定，不受泡泡影響 */}
+            <img
+              src={OWL_HINT_GIF}
+              alt="貓頭鷹博士提示"
+              className="h-16 w-16 object-contain"
+              style={isOwlSpeaking ? { animation: 'owl-bounce 0.45s ease-out forwards' } : undefined}
             />
-            <p className="text-sm font-semibold leading-6 text-white/90">{owlHint}</p>
           </div>
-          {/* 貓頭鷹 GIF */}
-          <img
-            src={OWL_HINT_GIF}
-            alt="貓頭鷹博士提示"
-            className="h-16 w-16 object-contain"
-            style={isOwlSpeaking ? { animation: 'owl-bounce 0.45s ease-out forwards' } : undefined}
-          />
         </div>
       )}
 

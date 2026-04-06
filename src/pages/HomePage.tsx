@@ -3,14 +3,16 @@ import PathMap from '../components/PathMap';
 import argumentationIcon from '../assets/indicator_argumentation.png';
 import reflectionIcon from '../assets/indicator_reflection.png';
 import streakIcon from '../assets/indicator_streak.png';
-
-const STAT_CARDS = [
-  { label: '已完成論證次數', value: '0', icon: argumentationIcon },
-  { label: '已完成反思次數', value: '0', icon: reflectionIcon },
-  { label: '連續練習天數', value: '0', icon: streakIcon },
-];
+import { useAuth } from '../context/AuthContext';
 
 export default function HomePage() {
+  const { student } = useAuth();
+  const statCards = [
+    { label: '已完成論證次數', value: String(student?.stats.completedArgumentCount ?? 0), icon: argumentationIcon },
+    { label: '已完成反思次數', value: String(student?.stats.completedReflectionCount ?? 0), icon: reflectionIcon },
+    { label: '連續練習天數', value: String(student?.stats.streakDays ?? 0), icon: streakIcon },
+  ];
+
   return (
     <div className="h-screen flex bg-[#F7EAD0] overflow-hidden">
       <SideNav />
@@ -21,8 +23,12 @@ export default function HomePage() {
             <div className="sticky top-0 z-20 shrink-0 px-6 pt-6 pb-4 md:px-8 md:pt-8 md:pb-5">
               <div className="rounded-2xl bg-[#FF4A2A] text-white shadow-[0_4px_14px_rgba(255,74,42,0.35)] px-5 py-4 flex items-center justify-between gap-4 backdrop-blur-sm">
                 <div className="min-w-0">
-                  <p className="text-sm opacity-90">第 1 單元 · 第 1 部分</p>
-                  <h2 className="text-xl font-bold truncate">水溶液</h2>
+                  <p className="text-sm opacity-90">
+                    第 1 單元
+                  </p>
+                  <h2 className="text-xl font-bold truncate">
+                    {student?.studentNumber ? `${student.studentNumber} 的學習首頁` : '水溶液'}
+                  </h2>
                 </div>
                 <button
                   type="button"
@@ -40,7 +46,7 @@ export default function HomePage() {
           </main>
           <aside className="flex-[0_0_40%] shrink-0 p-4 overflow-hidden">
             <div className="flex flex-col gap-4">
-              {STAT_CARDS.map((card) => (
+              {statCards.map((card) => (
                 <div
                   key={card.label}
                   className="rounded-xl bg-[#F7EAD0] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.06)] border-2 border-[#d4c9b8]"

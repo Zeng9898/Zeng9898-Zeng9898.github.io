@@ -102,19 +102,9 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
               onClose();
               navigate('/chat');
             }}
-            className="w-full rounded-xl bg-white py-3 text-[#FF4A2A] font-semibold transition-opacity hover:opacity-90 active:opacity-95 focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#58CC02]"
+            className="w-full rounded-xl bg-white py-3 text-[#FF4A2A] font-semibold shadow-[0_4px_0_0_#d1d5db] hover:opacity-90 active:translate-y-[3px] active:shadow-[0_1px_0_0_#d1d5db] focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#58CC02] transition-opacity"
           >
             開始練習
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              console.log('promote', level.id);
-              onClose();
-            }}
-            className="w-full rounded-xl bg-[#454545] py-3 text-white font-semibold transition-opacity hover:opacity-90 active:opacity-95 focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#58CC02]"
-          >
-            挑戰
           </button>
         </div>
       </div>

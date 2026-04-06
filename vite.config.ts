@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/Zeng9898-Zeng9898.github.io/",
+  base: "/scientific_argumentation/",
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
