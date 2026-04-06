@@ -53,17 +53,17 @@ CER 引導問題：你判斷出現「溶解現象」的標準是什麼？這些�
   },
 ];
 
-const ACTIVE_QUESTION_CONFIGS = QUESTION_CONFIGS.slice(1);
+const ACTIVE_QUESTION_CONFIGS = QUESTION_CONFIGS.slice(2);
 
 /** 根據題目設定取初始訊息陣列 */
 function makeInitialMessages(cfg: QuestionConfig): ChatMessage[] {
   return [{ id: '1', role: 'ai', text: cfg.initialMessage }];
 }
 
-// 兩題組架構：每組 10 steps，共 20 steps = 100%
+// 單題組架構：本題 10 steps = 100%
 const STEPS_PER_SET = 10;
 const TOTAL_SETS = ACTIVE_QUESTION_CONFIGS.length;
-const TOTAL_STEPS = STEPS_PER_SET * TOTAL_SETS; // 20
+const TOTAL_STEPS = STEPS_PER_SET * TOTAL_SETS; // 10
 const STEP_PROGRESS = (s: number) => Math.round((s / TOTAL_STEPS) * 100);
 // 每一組的進度閾值由 useEffect 動態計算：(currentSet * STEPS_PER_SET / TOTAL_STEPS) * 100
 
@@ -105,11 +105,11 @@ export default function ArgumentChatPage() {
   const [bonusVisible, setBonusVisible] = useState(false);
 
   const [conversationIdsByQuestion, setConversationIdsByQuestion] = useState<Record<number, string | null>>({
-    1: null, 2: null,
+    2: null,
   });
   // 各題完整聊天記錄（切題或結算時快照）
   const [messagesByQuestion, setMessagesByQuestion] = useState<Record<number, ChatMessage[]>>({
-    1: [], 2: [],
+    2: [],
   });
   const [phase, setPhase] = useState('');
   const [step, setStep] = useState(0);
