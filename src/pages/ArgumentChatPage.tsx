@@ -53,17 +53,17 @@ CER 引導問題：你判斷出現「溶解現象」的標準是什麼？這些�
   },
 ];
 
-/** 根據 questionIndex 取初始訊息陣列 */
-function makeInitialMessages(qIdx: number): ChatMessage[] {
-  const cfg = QUESTION_CONFIGS[qIdx] ?? QUESTION_CONFIGS[0];
+const ACTIVE_QUESTION_CONFIGS = QUESTION_CONFIGS.slice(1);
+
+/** 根據題目設定取初始訊息陣列 */
+function makeInitialMessages(cfg: QuestionConfig): ChatMessage[] {
   return [{ id: '1', role: 'ai', text: cfg.initialMessage }];
 }
 
-// 三題組架構：每組 10 steps，共 30 steps = 100%
-// 第二組 step 需加 10 的偏移、第三組加 20（由後端或前端題組計數器處理）
+// 兩題組架構：每組 10 steps，共 20 steps = 100%
 const STEPS_PER_SET = 10;
-const TOTAL_SETS = 3;
-const TOTAL_STEPS = STEPS_PER_SET * TOTAL_SETS; // 30
+const TOTAL_SETS = ACTIVE_QUESTION_CONFIGS.length;
+const TOTAL_STEPS = STEPS_PER_SET * TOTAL_SETS; // 20
 const STEP_PROGRESS = (s: number) => Math.round((s / TOTAL_STEPS) * 100);
 // 每一組的進度閾值由 useEffect 動態計算：(currentSet * STEPS_PER_SET / TOTAL_STEPS) * 100
 
@@ -105,11 +105,11 @@ export default function ArgumentChatPage() {
   const [bonusVisible, setBonusVisible] = useState(false);
 
   const [conversationIdsByQuestion, setConversationIdsByQuestion] = useState<Record<number, string | null>>({
-    0: null, 1: null, 2: null,
+    1: null, 2: null,
   });
   // 各題完整聊天記錄（切題或結算時快照）
   const [messagesByQuestion, setMessagesByQuestion] = useState<Record<number, ChatMessage[]>>({
-    0: [], 1: [], 2: [],
+    1: [], 2: [],
   });
   const [phase, setPhase] = useState('');
   const [step, setStep] = useState(0);
@@ -123,10 +123,10 @@ export default function ArgumentChatPage() {
   const [scenarioExpanded, setScenarioExpanded] = useState(false);
   const [flowStage, setFlowStage] = useState<FlowStage>('chat');
   const [currentSet, setCurrentSet] = useState(1);
-  // UI 1-based → API 0-based
-  const questionIndex = currentSet - 1;
+  const currentQuestionConfig = ACTIVE_QUESTION_CONFIGS[currentSet - 1] ?? ACTIVE_QUESTION_CONFIGS[0];
+  const questionIndex = currentQuestionConfig.id;
   const [owlHint, setOwlHint] = useState('試著說說看你的想法吧！');
-  const [activeHistoryTab, setActiveHistoryTab] = useState<string>('topic-1');
+  const [activeHistoryTab, setActiveHistoryTab] = useState<string>(`topic-${ACTIVE_QUESTION_CONFIGS[0].id}`);
   const [isOwlSpeaking, setIsOwlSpeaking] = useState(false);
   const owlSpeakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -398,7 +398,7 @@ export default function ArgumentChatPage() {
     setEntryStage('chat');
     setFlowStage('chat');
     setScenarioExpanded(false);
-    setMessages(makeInitialMessages(0));
+    setMessages(makeInitialMessages(ACTIVE_QUESTION_CONFIGS[0]));
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
@@ -408,7 +408,7 @@ export default function ArgumentChatPage() {
 
   const handleStartNextChallenge = () => {
     const nextSet = currentSet + 1;
-    const nextQIdx = nextSet - 1;
+    const nextCfg = ACTIVE_QUESTION_CONFIGS[nextSet - 1] ?? ACTIVE_QUESTION_CONFIGS[ACTIVE_QUESTION_CONFIGS.length - 1];
     // 切題前先快照當前題的聊天記錄
     setMessagesByQuestion((prev) => ({ ...prev, [questionIndex]: messages }));
     setCurrentSet(nextSet);
@@ -420,7 +420,7 @@ export default function ArgumentChatPage() {
     setRequiresRestatement(null);
     setErrorText('');
     setFlowStage('chat');
-    setMessages(makeInitialMessages(nextQIdx));
+    setMessages(makeInitialMessages(nextCfg));
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
@@ -537,11 +537,11 @@ export default function ArgumentChatPage() {
                   論證情境
                 </h1>
                 <p className="mt-7 text-lg md:text-xl leading-9 md:leading-10 text-white/85 whitespace-pre-line">
-                  {QUESTION_CONFIGS[0].scenarioText}
+                  {ACTIVE_QUESTION_CONFIGS[0].scenarioText}
                 </p>
-                {QUESTION_CONFIGS[0].scenarioImage && (
+                {ACTIVE_QUESTION_CONFIGS[0].scenarioImage && (
                   <img
-                    src={QUESTION_CONFIGS[0].scenarioImage}
+                    src={ACTIVE_QUESTION_CONFIGS[0].scenarioImage}
                     alt="情境圖表"
                     className="mt-6 mx-auto block w-full max-w-[480px] md:max-w-[600px] h-auto rounded-xl border border-white/10"
                   />
@@ -586,7 +586,7 @@ export default function ArgumentChatPage() {
                 <div className="min-h-0">
                   <div className="mt-3 rounded-xl bg-white/10 border border-white/10 px-4 py-4 text-left">
                     {(() => {
-                      const cfg = QUESTION_CONFIGS[questionIndex] ?? QUESTION_CONFIGS[0];
+                      const cfg = currentQuestionConfig;
                       return (
                         <>
                           <p className="text-sm md:text-base leading-relaxed text-white/90 whitespace-pre-line">
@@ -712,7 +712,7 @@ export default function ArgumentChatPage() {
                   論證情境
                 </h1>
                 {(() => {
-                  const cfg = QUESTION_CONFIGS[currentSet] ?? QUESTION_CONFIGS[QUESTION_CONFIGS.length - 1];
+                  const cfg = ACTIVE_QUESTION_CONFIGS[currentSet] ?? ACTIVE_QUESTION_CONFIGS[ACTIVE_QUESTION_CONFIGS.length - 1];
                   return (
                     <>
                       <p className="mt-7 text-lg md:text-xl leading-9 md:leading-10 text-white/85 whitespace-pre-line">
@@ -804,8 +804,8 @@ export default function ArgumentChatPage() {
                     </div>
                     {/* Tabs */}
                     <div className="relative z-10 flex items-center gap-5 px-8 pt-3 pb-2 shrink-0">
-                      {QUESTION_CONFIGS.map((cfg) => {
-                        const tabId = `topic-${cfg.id + 1}`;
+                      {ACTIVE_QUESTION_CONFIGS.map((cfg) => {
+                        const tabId = `topic-${cfg.id}`;
                         const isActive = activeHistoryTab === tabId;
                         return (
                           <button
@@ -825,7 +825,7 @@ export default function ArgumentChatPage() {
                     {/* 對話紀錄 */}
                     <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-8 pb-5 pt-2 space-y-2">
                       {(() => {
-                        const activeQIdx = parseInt(activeHistoryTab.replace('topic-', ''), 10) - 1;
+                        const activeQIdx = parseInt(activeHistoryTab.replace('topic-', ''), 10);
                         const historyMsgs = messagesByQuestion[activeQIdx] ?? [];
                         if (historyMsgs.length === 0) {
                           return (
