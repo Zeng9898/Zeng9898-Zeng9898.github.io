@@ -100,7 +100,7 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
             type="button"
             onClick={() => {
               onClose();
-              navigate('/chat');
+              navigate(`/chat?levelId=${encodeURIComponent(level.id)}`);
             }}
             className="w-full rounded-xl bg-white py-3 text-[#FF4A2A] font-semibold shadow-[0_4px_0_0_#d1d5db] hover:opacity-90 active:translate-y-[3px] active:shadow-[0_1px_0_0_#d1d5db] focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#58CC02] transition-opacity"
           >

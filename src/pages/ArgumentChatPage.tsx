@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import owlIntroGif from '../assets/owl_intro.gif';
-import chart13Img from '../assets/1-3chart.png';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE, buildApiHeaders } from '../lib/api';
+import { DEFAULT_LEVEL_ID, getLevelConfig, type QuestionConfig } from '../data/levels';
 // TODO: 替換成實際的貓頭鷹陪伴 GIF（可與 owl_intro.gif 不同，建議用待機動作）
 const OWL_HINT_GIF = owlIntroGif;
 
@@ -32,46 +32,6 @@ type InitConversationResult = {
 
 type EntryStage = 'intro' | 'scenario' | 'chat';
 
-type QuestionConfig = {
-  id: number;
-  title: string;
-  initialMessage: string;
-  scenarioText: string;
-  scenarioImage?: string;
-};
-
-const QUESTION_CONFIGS: QuestionConfig[] = [
-  {
-    id: 0,
-    title: '論證議題 1',
-    initialMessage: `請根據剛才的情境，說說你的想法：糖水放到磅秤上秤重，糖水會變輕嗎？
-    如果把這杯水放太陽下曬乾，砂糖還會出現嗎？`,
-    scenarioText:
-      '小華將 10 公克的砂糖加入 100 公克的水中，攪拌後砂糖完全消失不見了。\n小華把這杯糖水放到磅秤上秤重，並思考：糖水會變輕嗎？\n如果把這杯水放太陽下曬乾，砂糖還會出現嗎？',
-  },
-  {
-    id: 1,
-    title: '論證議題 2',
-    initialMessage: `哪些是溶解現象？這些物質能被取回嗎？請提出你的主張，也就是你的看法`,
-    scenarioText: `請判斷以下生活中處理食物的過程，哪些是「溶解現象」？
-A.煮湯加鹽巴 B.熱湯加粗粒黑胡椒 C.把米煮成稀飯
-D.在水中加維他命C錠 E.在豆漿中加入砂糖 F.奶茶加珍珠
-
-你判斷出現「溶解現象」的標準是什麼？這些物質能被取回嗎？
-請提出你的主張並說明原因。`,
-  },
-  {
-    id: 2,
-    title: '論證議題 3',
-    initialMessage: '請對照圖甲與圖乙的數據趨勢，你覺得妹妹說「糖也跟著消失了」對嗎？你覺得妹妹說得對嗎？先說說你的「主張」，也就是你的看法',
-    scenarioText:
-      '初始條件：將一杯含有 10 克糖的 110 克糖水（含糖和水）放在陽光下。\n\n圖甲（折線圖）：X 軸為「曝曬天數」，Y 軸為「整杯糖水的總重量」，趨勢線逐日往下降。\n圖乙（折線圖）：X 軸為「曝曬天數」，Y 軸為「杯底析出固體砂糖重量」，前幾天為 0，接著逐日上升，最終停留在 10 克。\n\n妹妹看著圖甲的數據下降，哭著說：「陽光把我的糖水變不見了！裡面的糖也跟著消失了！」\n對照圖甲與圖乙的數據趨勢，你覺得妹妹說「糖也跟著消失了」對嗎？你先說說你的想法，為什麼呢？',
-    scenarioImage: chart13Img,
-  },
-];
-
-const ACTIVE_QUESTION_CONFIGS = [QUESTION_CONFIGS[2], QUESTION_CONFIGS[1]];
-
 /** 根據題目設定取初始訊息陣列 */
 function makeInitialMessages(cfg: QuestionConfig): ChatMessage[] {
   return [{ id: '1', role: 'ai', text: cfg.initialMessage }];
@@ -92,13 +52,7 @@ function mapApiMessages(messages: InitApiMessage[], fallbackMessages: ChatMessag
   return normalized.length > 0 ? normalized : fallbackMessages;
 }
 
-// 兩題組架構：每組 7 steps，共 14 steps = 100%
 const STEPS_PER_SET = 7;
-const TOTAL_SETS = ACTIVE_QUESTION_CONFIGS.length;
-const TOTAL_STEPS = STEPS_PER_SET * TOTAL_SETS; // 14
-const STEP_PROGRESS = (s: number) => Math.round((s / TOTAL_STEPS) * 100);
-// 每一組的進度閾值由 useEffect 動態計算：(currentSet * STEPS_PER_SET / TOTAL_STEPS) * 100
-
 const DOCTOR_GIF_SRC = owlIntroGif;
 
 const PHASE_LABEL: Record<string, string> = {
@@ -127,7 +81,14 @@ const FAKE_RESULT = {
 
 export default function ArgumentChatPage() {
   const { token, logout } = useAuth();
-  const questionIds = ACTIVE_QUESTION_CONFIGS.map((cfg) => cfg.id);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const selectedLevel = getLevelConfig(searchParams.get('levelId') ?? DEFAULT_LEVEL_ID);
+  const activeQuestionConfigs = selectedLevel.questions;
+  const totalSets = activeQuestionConfigs.length;
+  const totalSteps = STEPS_PER_SET * totalSets;
+  const stepProgress = (value: number) => Math.round((value / totalSteps) * 100);
+  const questionIds = activeQuestionConfigs.map((cfg) => cfg.id);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [progress, setProgress] = useState(0);
@@ -154,11 +115,12 @@ export default function ArgumentChatPage() {
   const [scenarioExpanded, setScenarioExpanded] = useState(false);
   const [flowStage, setFlowStage] = useState<FlowStage>('chat');
   const [currentSet, setCurrentSet] = useState(1);
-  const currentQuestionConfig = ACTIVE_QUESTION_CONFIGS[currentSet - 1] ?? ACTIVE_QUESTION_CONFIGS[0];
+  const currentQuestionConfig = activeQuestionConfigs[currentSet - 1] ?? activeQuestionConfigs[0];
   const questionIndex = currentQuestionConfig.id;
   const [owlHint, setOwlHint] = useState('試著說說看你的想法吧！');
-  const [activeHistoryTab, setActiveHistoryTab] = useState<string>(`topic-${ACTIVE_QUESTION_CONFIGS[0].id}`);
+  const [activeHistoryTab, setActiveHistoryTab] = useState<string>(`topic-${activeQuestionConfigs[0].id}`);
   const [isOwlSpeaking, setIsOwlSpeaking] = useState(false);
+  const [lightboxImageSrc, setLightboxImageSrc] = useState<string | null>(null);
   const owlSpeakTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 反思聊天
@@ -169,7 +131,6 @@ export default function ArgumentChatPage() {
   const reflectionChatRef = useRef<HTMLDivElement>(null);
   const reflectionInputRef = useRef<HTMLInputElement>(null);
 
-  const navigate = useNavigate();
   const chatStreamRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isChatStage = entryStage === 'chat';
@@ -260,6 +221,15 @@ export default function ArgumentChatPage() {
   }, [showBonus]);
 
   useEffect(() => {
+    if (!lightboxImageSrc) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxImageSrc(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxImageSrc]);
+
+  useEffect(() => {
     const el = chatStreamRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
@@ -267,15 +237,15 @@ export default function ArgumentChatPage() {
 
   useEffect(() => {
     if (!isChatStage || flowStage !== 'chat') return;
-    const setThreshold = Math.round((currentSet * STEPS_PER_SET / TOTAL_STEPS) * 100);
+    const setThreshold = Math.round((currentSet * STEPS_PER_SET / totalSteps) * 100);
     if (progress >= setThreshold) {
-      if (currentSet < TOTAL_SETS) {
+      if (currentSet < totalSets) {
         setFlowStage('between-sets');
       } else {
         setFlowStage('settling');
       }
     }
-  }, [isChatStage, flowStage, progress, currentSet]);
+  }, [isChatStage, flowStage, progress, currentSet, totalSets, totalSteps]);
 
   // 結算中約 3 秒後顯示結果卡，同時快照最後一題的聊天記錄供反思頁使用
   useEffect(() => {
@@ -387,7 +357,7 @@ export default function ArgumentChatPage() {
     const globalNew = offset + newStep;
     const globalPrev = offset + prevStep;
     if (globalNew <= globalPrev) return; // step 只進不退（step state 已保證，這是第二道防線）
-    const newProgress = STEP_PROGRESS(globalNew);
+    const newProgress = stepProgress(globalNew);
     setProgress((prev) => Math.max(prev, newProgress)); // 第三道防線：progress 本身也只進不退
     setIsBumping(true);
     setShowBonus(globalNew - globalPrev);
@@ -404,7 +374,7 @@ export default function ArgumentChatPage() {
     // DEV 快捷：輸入「過關」觸發結算流程（dots → 結果卡 → 反思）
     if (import.meta.env.DEV && text === '過關') {
       setProgress(100);
-      setCurrentSet(TOTAL_SETS); // 確保結算判斷為最終組
+      setCurrentSet(totalSets); // 確保結算判斷為最終組
       setFlowStage('settling');
       return;
     }
@@ -499,7 +469,7 @@ export default function ArgumentChatPage() {
   };
 
   const handleStartChallenge = async () => {
-    const initialCfg = ACTIVE_QUESTION_CONFIGS[0];
+    const initialCfg = activeQuestionConfigs[0];
     setErrorText('');
     try {
       const init = await initializeQuestionConversation(initialCfg);
@@ -512,7 +482,7 @@ export default function ArgumentChatPage() {
       setStage(init.stage);
       setHintLevel(init.hintLevel);
       setRequiresRestatement(init.requiresRestatement);
-      setProgress(STEP_PROGRESS(init.step));
+      setProgress(stepProgress(init.step));
       requestAnimationFrame(() => inputRef.current?.focus());
     } catch (err) {
       setErrorText(err instanceof Error ? err.message : '初始化題目失敗');
@@ -525,7 +495,7 @@ export default function ArgumentChatPage() {
 
   const handleStartNextChallenge = async () => {
     const nextSet = currentSet + 1;
-    const nextCfg = ACTIVE_QUESTION_CONFIGS[nextSet - 1] ?? ACTIVE_QUESTION_CONFIGS[ACTIVE_QUESTION_CONFIGS.length - 1];
+    const nextCfg = activeQuestionConfigs[nextSet - 1] ?? activeQuestionConfigs[activeQuestionConfigs.length - 1];
     setErrorText('');
     try {
       const init = await initializeQuestionConversation(nextCfg);
@@ -537,13 +507,47 @@ export default function ArgumentChatPage() {
       setStage(init.stage);
       setHintLevel(init.hintLevel);
       setRequiresRestatement(init.requiresRestatement);
-      setProgress(STEP_PROGRESS(((nextSet - 1) * STEPS_PER_SET) + init.step));
+      setProgress(stepProgress(((nextSet - 1) * STEPS_PER_SET) + init.step));
       setFlowStage('chat');
       setMessages(init.messages);
       requestAnimationFrame(() => inputRef.current?.focus());
     } catch (err) {
       setErrorText(err instanceof Error ? err.message : '初始化題目失敗');
     }
+  };
+
+  const renderScenarioImage = (
+    cfg: Pick<QuestionConfig, 'scenarioImage' | 'scenarioImageClassName' | 'scenarioImageZoomable'>,
+    defaultSizeClassName: string,
+    wrapperClassName = '',
+    sizeClassNameOverride?: string,
+  ) => {
+    if (!cfg.scenarioImage) return null;
+
+    const imageClassName = `${wrapperClassName} block w-full h-auto rounded-xl border border-white/10 ${
+      sizeClassNameOverride ?? cfg.scenarioImageClassName ?? defaultSizeClassName
+    }`.trim();
+
+    if (!cfg.scenarioImageZoomable) {
+      return <img src={cfg.scenarioImage} alt="情境圖表" className={imageClassName} />;
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => setLightboxImageSrc(cfg.scenarioImage ?? null)}
+        className="group relative cursor-zoom-in"
+      >
+        <img
+          src={cfg.scenarioImage}
+          alt="情境圖表，點擊可放大"
+          className={imageClassName}
+        />
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-xl bg-black/45 px-3 py-2 text-xs text-white/90 opacity-0 transition-opacity group-hover:opacity-100">
+          點擊放大
+        </span>
+      </button>
+    );
   };
 
   return (
@@ -659,15 +663,11 @@ export default function ArgumentChatPage() {
                   論證情境
                 </h1>
                 <p className="mt-7 text-lg md:text-xl leading-9 md:leading-10 text-white/85 whitespace-pre-line">
-                  {ACTIVE_QUESTION_CONFIGS[0].scenarioText}
+                  {activeQuestionConfigs[0].scenarioText}
                 </p>
-                {ACTIVE_QUESTION_CONFIGS[0].scenarioImage && (
-                  <img
-                    src={ACTIVE_QUESTION_CONFIGS[0].scenarioImage}
-                    alt="情境圖表"
-                    className="mt-6 mx-auto block w-full max-w-[340px] md:max-w-[420px] h-auto rounded-xl border border-white/10"
-                  />
-                )}
+                <div className="mt-6 flex justify-center">
+                  {renderScenarioImage(activeQuestionConfigs[0], 'max-w-[340px] md:max-w-[420px]')}
+                </div>
                 <div className="mt-10 flex justify-center">
                   <button
                     type="button"
@@ -677,6 +677,9 @@ export default function ArgumentChatPage() {
                     我已閱讀完成，開始挑戰
                   </button>
                 </div>
+                {errorText ? (
+                  <p className="mt-4 text-red-300 text-sm" role="alert">{errorText}</p>
+                ) : null}
               </div>
             </div>
           )}
@@ -714,13 +717,9 @@ export default function ArgumentChatPage() {
                           <p className="text-sm md:text-base leading-relaxed text-white/90 whitespace-pre-line">
                             {cfg.scenarioText}
                           </p>
-                          {cfg.scenarioImage && (
-                            <img
-                              src={cfg.scenarioImage}
-                              alt="情境圖表"
-                              className="mt-4 block w-full max-w-[300px] md:max-w-[380px] h-auto rounded-lg border border-white/10"
-                            />
-                          )}
+                          <div className="mt-4">
+                            {renderScenarioImage(cfg, 'max-w-[300px] md:max-w-[380px]', '', 'max-w-[260px] md:max-w-[360px]')}
+                          </div>
                         </>
                       );
                     })()}
@@ -828,25 +827,21 @@ export default function ArgumentChatPage() {
             <div className="absolute inset-0 overflow-y-auto px-4 pb-32 pt-6 bg-[#0f1d20] animate-[fade-in_0.35s_ease-out_forwards] z-10">
               <div className="mx-auto w-full max-w-4xl text-center">
                 <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-2">
-                  題組 {currentSet + 1} / {TOTAL_SETS}
+                  題組 {currentSet + 1} / {totalSets}
                 </p>
                 <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white/95">
                   論證情境
                 </h1>
                 {(() => {
-                  const cfg = ACTIVE_QUESTION_CONFIGS[currentSet] ?? ACTIVE_QUESTION_CONFIGS[ACTIVE_QUESTION_CONFIGS.length - 1];
+                  const cfg = activeQuestionConfigs[currentSet] ?? activeQuestionConfigs[activeQuestionConfigs.length - 1];
                   return (
                     <>
                       <p className="mt-7 text-lg md:text-xl leading-9 md:leading-10 text-white/85 whitespace-pre-line">
                         {cfg.scenarioText}
                       </p>
-                      {cfg.scenarioImage && (
-                        <img
-                          src={cfg.scenarioImage}
-                          alt="情境圖表"
-                          className="mt-6 mx-auto block w-full max-w-[340px] md:max-w-[420px] h-auto rounded-xl border border-white/10"
-                        />
-                      )}
+                      <div className="mt-6 flex justify-center">
+                        {renderScenarioImage(cfg, 'max-w-[340px] md:max-w-[420px]')}
+                      </div>
                     </>
                   );
                 })()}
@@ -859,6 +854,9 @@ export default function ArgumentChatPage() {
                     我已閱讀完成，開始挑戰
                   </button>
                 </div>
+                {errorText ? (
+                  <p className="text-red-300 text-sm" role="alert">{errorText}</p>
+                ) : null}
               </div>
             </div>
           )}
@@ -926,7 +924,7 @@ export default function ArgumentChatPage() {
                     </div>
                     {/* Tabs */}
                     <div className="relative z-10 flex items-center gap-5 px-8 pt-3 pb-2 shrink-0">
-                      {ACTIVE_QUESTION_CONFIGS.map((cfg) => {
+                      {activeQuestionConfigs.map((cfg) => {
                         const tabId = `topic-${cfg.id}`;
                         const isActive = activeHistoryTab === tabId;
                         return (
@@ -1155,6 +1153,34 @@ export default function ArgumentChatPage() {
               alt="貓頭鷹博士提示"
               className="h-16 w-16 object-contain"
               style={isOwlSpeaking ? { animation: 'owl-bounce 0.45s ease-out forwards' } : undefined}
+            />
+          </div>
+        </div>
+      )}
+
+      {lightboxImageSrc && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/75 px-4 py-6"
+          onClick={() => setLightboxImageSrc(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="放大圖片"
+        >
+          <div
+            className="relative flex max-h-full max-w-5xl items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setLightboxImageSrc(null)}
+              className="absolute right-3 top-3 z-10 rounded-full bg-black/55 px-3 py-1 text-sm font-semibold text-white hover:bg-black/75"
+            >
+              關閉
+            </button>
+            <img
+              src={lightboxImageSrc}
+              alt="放大情境圖表"
+              className="max-h-[88vh] w-auto max-w-full rounded-2xl border border-white/15 bg-white shadow-2xl"
             />
           </div>
         </div>

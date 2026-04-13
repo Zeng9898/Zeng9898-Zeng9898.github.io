@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import levelImage from '../assets/level.png';
 import LevelPopover, { type LevelForPopover, type AnchorRect } from './LevelPopover';
-
-const LEVEL_NODES: (LevelForPopover & { label: string })[] = [
-  { id: '1', label: '第一次科學論證', title: '第一次科學論證', description: '', isCurrent: true },
-];
+import { LEVEL_CONFIGS } from '../data/levels';
 
 export default function PathMap() {
   const [selectedLevel, setSelectedLevel] = useState<LevelForPopover | null>(null);
@@ -42,7 +39,7 @@ export default function PathMap() {
         aria-hidden
       />
       <div className="relative z-10 flex flex-col gap-10">
-        {LEVEL_NODES.map((node, index) => (
+        {LEVEL_CONFIGS.map((node, index) => (
           <div
             key={node.id}
             className={`flex w-full ${index % 2 === 0 ? 'justify-end pr-[52%]' : 'justify-start pl-[52%]'}`}
