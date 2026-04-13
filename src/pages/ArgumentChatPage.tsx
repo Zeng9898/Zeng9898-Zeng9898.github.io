@@ -521,6 +521,7 @@ export default function ArgumentChatPage() {
     defaultSizeClassName: string,
     wrapperClassName = '',
     sizeClassNameOverride?: string,
+    forceZoomable = false,
   ) => {
     if (!cfg.scenarioImage) return null;
 
@@ -528,7 +529,9 @@ export default function ArgumentChatPage() {
       sizeClassNameOverride ?? cfg.scenarioImageClassName ?? defaultSizeClassName
     }`.trim();
 
-    if (!cfg.scenarioImageZoomable) {
+    const isZoomable = forceZoomable || cfg.scenarioImageZoomable === true;
+
+    if (!isZoomable) {
       return <img src={cfg.scenarioImage} alt="情境圖表" className={imageClassName} />;
     }
 
@@ -686,11 +689,11 @@ export default function ArgumentChatPage() {
 
           {/* 查看情境：僅在已開始挑戰後顯示，progress 下方、聊天區上方 */}
           {entryStage === 'chat' && flowStage === 'chat' && (
-            <div className="shrink-0 flex flex-col mt-2 mb-3 animate-[fade-in_0.7s_ease-out_forwards]">
+            <div className="shrink-0 flex flex-col mt-1.5 mb-2 animate-[fade-in_0.7s_ease-out_forwards]">
               <button
                 type="button"
                 onClick={() => setScenarioExpanded((v) => !v)}
-                className="self-start rounded-xl bg-[#4A9EFF] text-white font-semibold py-2.5 px-5 shadow-[0_4px_0_0_#2563eb] hover:opacity-90 active:opacity-95 focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1d20] transition-opacity flex items-center gap-2"
+                className="self-start rounded-xl bg-[#4A9EFF] text-white font-semibold py-2 px-4 shadow-[0_4px_0_0_#2563eb] hover:opacity-90 active:opacity-95 focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f1d20] transition-opacity flex items-center gap-2"
                 aria-expanded={scenarioExpanded}
                 aria-controls="scenario-panel"
               >
@@ -709,16 +712,17 @@ export default function ArgumentChatPage() {
                 aria-label="論證情境"
               >
                 <div className="min-h-0">
-                  <div className="mt-3 rounded-xl bg-white/10 border border-white/10 px-4 py-4 text-left">
+                  <div className="mt-2 rounded-xl bg-white/10 border border-white/10 px-4 py-3 text-left">
                     {(() => {
                       const cfg = currentQuestionConfig;
+                      const compactScenarioText = cfg.scenarioText.replace(/\n{2,}/g, '\n');
                       return (
                         <>
-                          <p className="text-sm md:text-base leading-relaxed text-white/90 whitespace-pre-line">
-                            {cfg.scenarioText}
+                          <p className="text-xs md:text-sm leading-6 md:leading-7 text-white/90 whitespace-pre-line">
+                            {compactScenarioText}
                           </p>
-                          <div className="mt-4">
-                            {renderScenarioImage(cfg, 'max-w-[300px] md:max-w-[380px]', '', 'max-w-[260px] md:max-w-[360px]')}
+                          <div className="mt-3">
+                            {renderScenarioImage(cfg, 'max-w-[300px] md:max-w-[380px]', '', 'max-w-[220px] md:max-w-[300px]', true)}
                           </div>
                         </>
                       );

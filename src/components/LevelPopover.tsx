@@ -6,6 +6,7 @@ export type LevelForPopover = {
   title: string;
   description: string;
   isCurrent?: boolean;
+  isDisabled?: boolean;
 };
 
 export type AnchorRect = { top: number; left: number; width: number; height: number };
@@ -41,6 +42,7 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
   }, [level, onClose]);
 
   if (!level) return null;
+  const isDisabled = level.isDisabled === true;
 
   const handleBackdropClick = () => onClose();
   const handleCardClick = (e: React.MouseEvent) => e.stopPropagation();
@@ -99,12 +101,19 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
             ref={firstButtonRef}
             type="button"
             onClick={() => {
+              if (isDisabled) return;
               onClose();
               navigate(`/chat?levelId=${encodeURIComponent(level.id)}`);
             }}
-            className="w-full rounded-xl bg-white py-3 text-[#FF4A2A] font-semibold shadow-[0_4px_0_0_#d1d5db] hover:opacity-90 active:translate-y-[3px] active:shadow-[0_1px_0_0_#d1d5db] focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#58CC02] transition-opacity"
+            disabled={isDisabled}
+            aria-disabled={isDisabled}
+            className={`w-full rounded-xl py-3 font-semibold shadow-[0_4px_0_0_#d1d5db] transition-opacity focus-visible:outline focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#58CC02] ${
+              isDisabled
+                ? 'cursor-not-allowed bg-white/70 text-[#FF4A2A]/60 opacity-80'
+                : 'bg-white text-[#FF4A2A] hover:opacity-90 active:translate-y-[3px] active:shadow-[0_1px_0_0_#d1d5db]'
+            }`}
           >
-            開始練習
+            {isDisabled ? '目前停用' : '開始練習'}
           </button>
         </div>
       </div>

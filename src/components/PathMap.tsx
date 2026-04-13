@@ -21,7 +21,13 @@ export default function PathMap() {
     }
     const rect = e.currentTarget.getBoundingClientRect();
     setAnchorRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
-    setSelectedLevel({ id: node.id, title: node.title, description: node.description, isCurrent: node.isCurrent });
+    setSelectedLevel({
+      id: node.id,
+      title: node.title,
+      description: node.description,
+      isCurrent: node.isCurrent,
+      isDisabled: node.isDisabled,
+    });
   };
 
   const handleClose = () => {

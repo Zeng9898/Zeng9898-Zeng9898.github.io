@@ -20,6 +20,7 @@ export type LevelConfig = {
   title: string;
   description: string;
   isCurrent?: boolean;
+  isDisabled?: boolean;
   questions: QuestionConfig[];
 };
 
@@ -78,7 +79,7 @@ D.在水中加維他命C錠 E.在豆漿中加入砂糖 F.奶茶加珍珠
     id: 5,
     title: "論證議題 3",
     initialMessage:
-      "請對照圖甲與圖乙的趨勢，小明的說法正確嗎？先提出你的主張，再說明理由。",
+      "請對照圖甲與圖乙的趨勢，小明的說法正確嗎？先提出你的想法，再說明理由。",
     scenarioText:
       "小明看了這兩張圖表後說：「因為圖甲顯示糖水的總重量一直增加，代表砂糖都有加進去，所以圖乙的甜度折線畫錯了，甜度應該也要跟著一直上升才對！」\n\n請對照圖甲與圖乙的趨勢，小明的說法正確嗎？",
     scenarioImage: sugarSaturationChartsImg,
@@ -92,6 +93,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     title: "第一次科學論證",
     description: "以水溶液情境練習主張、證據與推理。",
     isCurrent: true,
+    isDisabled: true,
     questions: [QUESTION_CONFIGS[2], QUESTION_CONFIGS[1]],
   },
   {
