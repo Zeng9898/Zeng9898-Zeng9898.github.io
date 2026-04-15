@@ -69,14 +69,6 @@ const STAGE_LABEL: Record<string, string> = {
 /** 論證完成後的流程階段 */
 type FlowStage = 'chat' | 'between-sets' | 'next-scenario' | 'settling' | 'result' | 'reflection';
 
-/** 假資料：論證結果分數與評語（之後可改為 API 回傳） */
-const FAKE_RESULT = {
-  claim: { score: 4, max: 5, label: '主張' },
-  evidence: { score: 3, max: 5, label: '證據' },
-  reasoning: { score: 4, max: 5, label: '推理' },
-  overallComment: '你已能提出明確主張，若能讓證據與推理之間的連結更完整，論證會更有說服力。',
-};
-
 // ──────────────────────────────────────────────────────────────────────────────
 
 export default function ArgumentChatPage() {
@@ -790,37 +782,16 @@ export default function ArgumentChatPage() {
           {entryStage === 'chat' && flowStage === 'result' && (
             <div className="absolute inset-0 flex items-center justify-center px-4">
               <div className="w-full max-w-lg rounded-2xl bg-white/10 border border-white/15 px-6 py-6 shadow-xl animate-[fade-in_0.3s_ease-out_forwards] transform translate-y-4 transition-transform duration-300 ease-out">
-                <h2 className="text-2xl font-bold text-white mb-2">恭喜完成論證</h2>
-                <p className="text-sm text-white/70 mb-4">你的科學論證能力表現如下：</p>
-                <div className="space-y-2 text-sm text-white/90">
-                  <div className="flex justify-between">
-                    <span>{FAKE_RESULT.claim.label}</span>
-                    <span className="tabular-nums font-semibold">
-                      {FAKE_RESULT.claim.score} / {FAKE_RESULT.claim.max}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>{FAKE_RESULT.evidence.label}</span>
-                    <span className="tabular-nums font-semibold">
-                      {FAKE_RESULT.evidence.score} / {FAKE_RESULT.evidence.max}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>{FAKE_RESULT.reasoning.label}</span>
-                    <span className="tabular-nums font-semibold">
-                      {FAKE_RESULT.reasoning.score} / {FAKE_RESULT.reasoning.max}
-                    </span>
-                  </div>
-                </div>
-                <p className="mt-4 text-sm leading-relaxed text-white/85">
-                  {FAKE_RESULT.overallComment}
+                <h2 className="text-2xl font-bold text-white mb-3">過關成功</h2>
+                <p className="text-sm leading-relaxed text-white/85">
+                  你已經順利完成這次挑戰，成功闖過這一關的科學論證任務。接下來進入反思，回顧你的推理歷程，整理這次解題時找到的重要想法與線索。
                 </p>
                 <button
                   type="button"
                   onClick={() => { setFlowStage('reflection'); setProgress(0); }}
                   className="mt-6 w-full rounded-xl bg-[#F5C451] text-[#3b2b12] font-semibold py-3.5 shadow-[0_4px_0_0_rgba(180,129,27,0.9)] hover:brightness-105 focus-visible:outline focus-visible:ring-2 focus-visible:ring-white transition"
                 >
-                  進行反思
+                  進入反思
                 </button>
               </div>
             </div>
