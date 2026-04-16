@@ -109,7 +109,6 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     title: "第一次科學論證",
     description: "以水溶液情境練習主張、證據與推理。",
     isCurrent: true,
-    isDisabled: true,
     questions: [QUESTION_CONFIGS[2], QUESTION_CONFIGS[1]],
   },
   {

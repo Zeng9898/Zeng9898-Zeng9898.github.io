@@ -26,11 +26,10 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
 
   useEffect(() => {
     if (!level) return;
-    setEntered(false);
     const id = setTimeout(() => setEntered(true), 32);
     firstButtonRef.current?.focus();
     return () => clearTimeout(id);
-  }, [level?.id]);
+  }, [level]);
 
   useEffect(() => {
     if (!level) return;

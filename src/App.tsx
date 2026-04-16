@@ -1,8 +1,13 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import HomePage from './pages/HomePage';
 import ArgumentChatPage from './pages/ArgumentChatPage';
 import ProtectedRoute from './components/ProtectedRoute';
+
+function ArgumentChatRoute() {
+  const location = useLocation();
+  return <ArgumentChatPage key={location.search} />;
+}
 
 function App() {
   return (
@@ -20,7 +25,7 @@ function App() {
         path="/chat"
         element={(
           <ProtectedRoute>
-            <ArgumentChatPage />
+            <ArgumentChatRoute />
           </ProtectedRoute>
         )}
       />

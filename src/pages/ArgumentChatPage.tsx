@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import completionMonsterGif from '../assets/completion_monster.gif';
 import owlIntroGif from '../assets/owl_intro.gif';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE, buildApiHeaders } from '../lib/api';
@@ -266,7 +267,11 @@ export default function ArgumentChatPage() {
         const res = await fetch(`${API_BASE}/api/reflection`, {
           method: 'POST',
           headers: buildApiHeaders(token),
-          body: JSON.stringify({ userMessage: '（反思開始）', conversationId: null }),
+          body: JSON.stringify({
+            userMessage: '（反思開始）',
+            conversationId: null,
+            levelId: selectedLevel.id,
+          }),
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
@@ -276,7 +281,12 @@ export default function ArgumentChatPage() {
         }
         if (!res.ok || data.error) return;
         setReflectionConversationId(data.conversationId ?? null);
-        if (typeof data.assistantMessage === 'string' && data.assistantMessage.trim()) {
+        const restoredMessages = Array.isArray(data.messages)
+          ? mapApiMessages(data.messages as InitApiMessage[], [])
+          : [];
+        if (restoredMessages.length > 0) {
+          setReflectionMessages(restoredMessages);
+        } else if (typeof data.assistantMessage === 'string' && data.assistantMessage.trim()) {
           setReflectionMessages([{ id: 'r-init', role: 'ai', text: data.assistantMessage }]);
         }
       } catch {
@@ -303,7 +313,11 @@ export default function ArgumentChatPage() {
       const res = await fetch(`${API_BASE}/api/reflection`, {
         method: 'POST',
         headers: buildApiHeaders(token),
-        body: JSON.stringify({ userMessage: text, conversationId: reflectionConversationId }),
+        body: JSON.stringify({
+          userMessage: text,
+          conversationId: reflectionConversationId,
+          levelId: selectedLevel.id,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
@@ -782,6 +796,13 @@ export default function ArgumentChatPage() {
           {entryStage === 'chat' && flowStage === 'result' && (
             <div className="absolute inset-0 flex items-center justify-center px-4">
               <div className="w-full max-w-lg rounded-2xl bg-white/10 border border-white/15 px-6 py-6 shadow-xl animate-[fade-in_0.3s_ease-out_forwards] transform translate-y-4 transition-transform duration-300 ease-out">
+                <div className="mb-4 flex justify-center">
+                  <img
+                    src={completionMonsterGif}
+                    alt="過關角色動畫"
+                    className="w-40 max-w-full drop-shadow-[0_0_24px_rgba(245,196,81,0.3)] md:w-48"
+                  />
+                </div>
                 <h2 className="text-2xl font-bold text-white mb-3">過關成功</h2>
                 <p className="text-sm leading-relaxed text-white/85">
                   你已經順利完成這次挑戰，成功闖過這一關的科學論證任務。接下來進入反思，回顧你的推理歷程，整理這次解題時找到的重要想法與線索。
