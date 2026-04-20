@@ -523,13 +523,14 @@ export default function ArgumentChatPage() {
   };
 
   const renderScenarioImage = (
-    cfg: Pick<QuestionConfig, 'scenarioImage' | 'scenarioImageClassName' | 'scenarioImageZoomable'>,
+    cfg: Pick<QuestionConfig, 'scenarioImage' | 'scenarioImages' | 'scenarioImageClassName' | 'scenarioImageZoomable'>,
     defaultSizeClassName: string,
     wrapperClassName = '',
     sizeClassNameOverride?: string,
     forceZoomable = false,
   ) => {
-    if (!cfg.scenarioImage) return null;
+    const imageSources = cfg.scenarioImages?.length ? cfg.scenarioImages : cfg.scenarioImage ? [cfg.scenarioImage] : [];
+    if (!imageSources.length) return null;
 
     const imageClassName = `${wrapperClassName} block w-full h-auto rounded-xl border border-white/10 ${
       sizeClassNameOverride ?? cfg.scenarioImageClassName ?? defaultSizeClassName
@@ -537,25 +538,32 @@ export default function ArgumentChatPage() {
 
     const isZoomable = forceZoomable || cfg.scenarioImageZoomable === true;
 
-    if (!isZoomable) {
-      return <img src={cfg.scenarioImage} alt="情境圖表" className={imageClassName} />;
-    }
-
     return (
-      <button
-        type="button"
-        onClick={() => setLightboxImageSrc(cfg.scenarioImage ?? null)}
-        className="group relative cursor-zoom-in"
-      >
-        <img
-          src={cfg.scenarioImage}
-          alt="情境圖表，點擊可放大"
-          className={imageClassName}
-        />
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-xl bg-black/45 px-3 py-2 text-xs text-white/90 opacity-0 transition-opacity group-hover:opacity-100">
-          點擊放大
-        </span>
-      </button>
+      <div className="flex w-full flex-col items-center gap-4">
+        {imageSources.map((imageSrc, index) => {
+          if (!isZoomable) {
+            return <img key={imageSrc} src={imageSrc} alt={`情境圖表 ${index + 1}`} className={imageClassName} />;
+          }
+
+          return (
+            <button
+              key={imageSrc}
+              type="button"
+              onClick={() => setLightboxImageSrc(imageSrc)}
+              className="group relative cursor-zoom-in"
+            >
+              <img
+                src={imageSrc}
+                alt={`情境圖表 ${index + 1}，點擊可放大`}
+                className={imageClassName}
+              />
+              <span className="pointer-events-none absolute inset-x-0 bottom-0 rounded-b-xl bg-black/45 px-3 py-2 text-xs text-white/90 opacity-0 transition-opacity group-hover:opacity-100">
+                點擊放大
+              </span>
+            </button>
+          );
+        })}
+      </div>
     );
   };
 

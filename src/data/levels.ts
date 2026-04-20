@@ -3,6 +3,10 @@
 // - 2-3-sugar-saturation-layer.png contains the chart pair
 import sugarSaturationLayerDiagramImg from "../assets/2-1-2-sugar-saturation-chart.png";
 import sugarSaturationChartsImg from "../assets/2-3-sugar-saturation-layer.png";
+import level4SoilPhYearsImg from "../assets/level4-1-soil-ph-years.png";
+import level4SoilPhYieldImg from "../assets/level4-1-soil-ph-yield.png";
+import level4SarsaparillaIndicatorImg from "../assets/level4-2-sarsaparilla-indicator.png";
+import level4SarsaparillaTableImg from "../assets/level4-2-sarsaparilla-table.png";
 
 export type QuestionConfig = {
   id: number;
@@ -10,6 +14,7 @@ export type QuestionConfig = {
   initialMessage: string;
   scenarioText: string;
   scenarioImage?: string;
+  scenarioImages?: string[];
   scenarioImageClassName?: string;
   scenarioImageZoomable?: boolean;
 };
@@ -100,6 +105,28 @@ D.在水中加維他命C錠 E.在豆漿中加入砂糖 F.奶茶加珍珠
     scenarioText:
       "農夫阿公發現農田因為長期施肥或酸雨影響，土壤變得太酸，作物長不好。老師建議阿公可以在田裡撒一些熟石灰（鹼性）來改良土壤。\n\n小翔想到自己做過的模擬實驗：酸性的白醋加入鹼性的小蘇打水後，溶液會從紅色變回紫色，表示溶液變得比較接近中性。\n\n問題：你覺得熟石灰可以幫助改善酸化的土壤嗎？先說說你的想法。",
   },
+  {
+    id: 8,
+    title: "論證議題 1",
+    initialMessage:
+      "小華建議阿公「撒越多越好」。你覺得小華的說法是完全正確的嗎？請提出你的主張。",
+    scenarioText:
+      "農夫阿公發現農田最近幾年收成越來越差。小華拿了圖甲跟圖乙給阿公看，並建議：「阿公，我們應該在田裡大量撒入『熟石灰（鹼性）』，而且撒越多越好，這樣作物就會長得好！」請分析兩張圖表的趨勢。\n\n問題：小華建議阿公「撒越多越好」。你覺得小華的說法是完全正確的嗎？請提出你的主張。",
+    scenarioImages: [level4SoilPhYearsImg, level4SoilPhYieldImg],
+    scenarioImageClassName: "max-w-[720px]",
+    scenarioImageZoomable: true,
+  },
+  {
+    id: 9,
+    title: "論證議題 2",
+    initialMessage:
+      "根據表中的數據，你覺得新鮮沙士是酸性、鹼性還是中性？請先說說你的主張。",
+    scenarioText:
+      "小魚想知道為什麼沙士喝起來會辣辣刺激的，她懷疑這跟它的酸鹼性有關。她設計了一個對照實驗，觀察「純水」、「鹽水」、「沙士」以及「加熱趕走氣泡後的沙士」在指示劑下的反應。\n\n問題：根據表中的數據，你覺得新鮮沙士是酸性、鹼性還是中性？請先說說你的主張。",
+    scenarioImages: [level4SarsaparillaIndicatorImg, level4SarsaparillaTableImg],
+    scenarioImageClassName: "max-w-[760px]",
+    scenarioImageZoomable: true,
+  },
 ];
 
 export const LEVEL_CONFIGS: LevelConfig[] = [
@@ -124,6 +151,13 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     title: "酸鹼中和與生活應用",
     description: "從螞蟻咬傷、胃藥與酸化土壤情境，練習用模擬實驗支持主張。",
     questions: [QUESTION_CONFIGS[6], QUESTION_CONFIGS[7]],
+  },
+  {
+    id: "level-4",
+    label: "圖表趨勢與酸鹼判斷",
+    title: "圖表趨勢與酸鹼判斷",
+    description: "分析土壤 pH、收成量與沙士對照實驗，練習用多張圖表提出主張。",
+    questions: [QUESTION_CONFIGS[8], QUESTION_CONFIGS[9]],
   },
 ];
 
