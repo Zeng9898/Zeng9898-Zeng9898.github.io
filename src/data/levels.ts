@@ -7,6 +7,7 @@ import level4SoilPhYearsImg from "../assets/level4-1-soil-ph-years.png";
 import level4SoilPhYieldImg from "../assets/level4-1-soil-ph-yield.png";
 import level4SarsaparillaIndicatorImg from "../assets/level4-2-sarsaparilla-indicator.png";
 import level4SarsaparillaTableImg from "../assets/level4-2-sarsaparilla-table.png";
+import level5AcidGasImg from "../assets/level5-2-acid-gas.png";
 
 export type QuestionConfig = {
   id: number;
@@ -127,6 +128,33 @@ D.在水中加維他命C錠 E.在豆漿中加入砂糖 F.奶茶加珍珠
     scenarioImageClassName: "max-w-[760px]",
     scenarioImageZoomable: true,
   },
+  {
+    id: 10,
+    title: "論證議題 1",
+    initialMessage:
+      "為什麼乾燥的粉末不能讓試紙變色，而加了水之後卻可以？請提出你的主張和想法。",
+    scenarioText:
+      "小華聽說「檸檬酸粉末」可以用來清除熱水瓶裡的鹼性水垢。他為了確認粉末的性質，拿出一張乾燥的藍色石蕊試紙（或是塗有紫色高麗菜汁的乾燥紙片），直接灑上一些「乾燥的檸檬酸粉末」。結果他驚奇地發現：試紙的顏色竟然完全沒有改變！小華心想：「難道檸檬酸粉末不是酸性的嗎？」接著，他只不過在粉末上滴了一滴純水，試紙竟然立刻變成了紅色。\n\n問題：為什麼乾燥的粉末不能讓試紙變色，而加了水之後卻可以？請提出你的主張和想法。",
+  },
+  {
+    id: 11,
+    title: "論證議題 2",
+    initialMessage:
+      "你贊成這位市民的看法嗎？請說明你的主張和想法。",
+    scenarioText:
+      "工廠排放了大量酸性廢氣。有市民看著圖甲說：「你看！廢氣濃度再高，測試紙都沒有變紅，代表這些廢氣根本沒有酸性，不用擔心污染植物！」你贊成這位市民的看法嗎？請對照圖甲與圖乙的趨勢，說明你的主張和想法。\n\n問題：你贊成這位市民的看法嗎？請說明你的主張和想法。",
+    scenarioImage: level5AcidGasImg,
+    scenarioImageClassName: "max-w-[760px]",
+    scenarioImageZoomable: true,
+  },
+  {
+    id: 12,
+    title: "論證議題 3",
+    initialMessage:
+      "為什麼乾燥的石灰岩無法讓試紙變色，必須在有水的情況下才能展現鹼性？請説説看你的想法。",
+    scenarioText:
+      "小強在野外看到許多石灰岩（主要成分為碳酸鈣，呈弱鹼性）。他拿乾燥的石蕊試紙直接貼在乾燥的石灰岩表面，試紙沒有反應；但他若先將石蕊試紙噴濕再貼上去，試紙就慢慢變藍了。\n\n問題：為什麼乾燥的石灰岩無法讓試紙變色，必須在有水的情況下才能展現鹼性？請説説看你的想法。",
+  },
 ];
 
 export const LEVEL_CONFIGS: LevelConfig[] = [
@@ -158,6 +186,13 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     title: "圖表趨勢與酸鹼判斷",
     description: "分析土壤 pH、收成量與沙士對照實驗，練習用多張圖表提出主張。",
     questions: [QUESTION_CONFIGS[8], QUESTION_CONFIGS[9]],
+  },
+  {
+    id: "level-5",
+    label: "水與酸鹼反應",
+    title: "水與酸鹼反應",
+    description: "從乾燥粉末、酸性廢氣與石灰岩情境，練習判斷水在酸鹼測試中的角色。",
+    questions: [QUESTION_CONFIGS[10], QUESTION_CONFIGS[11], QUESTION_CONFIGS[12]],
   },
 ];
 
