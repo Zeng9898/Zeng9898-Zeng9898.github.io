@@ -17,11 +17,17 @@ type LevelPopoverProps = {
   onClose: () => void;
 };
 
-const GAP_BELOW_BUTTON = 20;
+const GAP_FROM_BUTTON = 20;
+const VIEWPORT_PADDING = 16;
+const POPOVER_WIDTH = 320;
 
 export default function LevelPopover({ level, anchorRect, onClose }: LevelPopoverProps) {
   const navigate = useNavigate();
   const [entered, setEntered] = useState(false);
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
   const firstButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -40,6 +46,19 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [level, onClose]);
 
+  useEffect(() => {
+    if (!level) return;
+    const handleResize = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [level]);
+
   if (!level) return null;
   const isDisabled = level.isDisabled === true;
 
@@ -47,11 +66,31 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
   const handleCardClick = (e: React.MouseEvent) => e.stopPropagation();
 
   const isAnchored = anchorRect != null;
+  const shouldOpenAbove = isAnchored
+    ? anchorRect.top > viewportSize.height - (anchorRect.top + anchorRect.height)
+    : false;
+  const halfPopoverWidth = Math.min(POPOVER_WIDTH, viewportSize.width - VIEWPORT_PADDING * 2) / 2;
+  const anchoredLeft = isAnchored
+    ? Math.min(
+      Math.max(anchorRect.left + anchorRect.width / 2, VIEWPORT_PADDING + halfPopoverWidth),
+      viewportSize.width - VIEWPORT_PADDING - halfPopoverWidth,
+    )
+    : undefined;
   const cardPositionStyle = isAnchored
-    ? {
-      top: anchorRect.top + anchorRect.height + GAP_BELOW_BUTTON,
-      left: anchorRect.left + anchorRect.width / 2,
-    }
+    ? shouldOpenAbove
+      ? {
+        bottom: viewportSize.height - anchorRect.top + GAP_FROM_BUTTON,
+        left: anchoredLeft,
+        maxHeight: Math.max(180, anchorRect.top - GAP_FROM_BUTTON - VIEWPORT_PADDING),
+      }
+      : {
+        top: anchorRect.top + anchorRect.height + GAP_FROM_BUTTON,
+        left: anchoredLeft,
+        maxHeight: Math.max(
+          180,
+          viewportSize.height - anchorRect.top - anchorRect.height - GAP_FROM_BUTTON - VIEWPORT_PADDING,
+        ),
+      }
     : undefined;
 
   return (
@@ -73,13 +112,15 @@ export default function LevelPopover({ level, anchorRect, onClose }: LevelPopove
             ? {
               position: 'fixed' as const,
               top: cardPositionStyle?.top,
+              bottom: cardPositionStyle?.bottom,
               left: cardPositionStyle?.left,
+              maxHeight: cardPositionStyle?.maxHeight,
               transform: 'translateX(-50%)',
               zIndex: 10,
             }
             : undefined
         }
-        className={`relative z-10 w-full max-w-[320px] rounded-2xl bg-[#FF4A2A] p-5 text-white shadow-lg transition-all duration-500 ease-out ${isAnchored ? 'origin-top overflow-hidden' : ''
+        className={`relative z-10 w-full max-w-[320px] rounded-2xl bg-[#FF4A2A] p-5 text-white shadow-lg transition-all duration-500 ease-out ${isAnchored ? `${shouldOpenAbove ? 'origin-bottom' : 'origin-top'} overflow-y-auto` : ''
           } ${isAnchored
             ? entered
               ? 'scale-y-100 opacity-100'
