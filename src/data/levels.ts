@@ -8,6 +8,7 @@ import level4SoilPhYieldImg from "../assets/level4-1-soil-ph-yield.png";
 import level4SarsaparillaIndicatorImg from "../assets/level4-2-sarsaparilla-indicator.png";
 import level4SarsaparillaTableImg from "../assets/level4-2-sarsaparilla-table.png";
 import level5AcidGasImg from "../assets/level5-2-acid-gas.png";
+import level6ConductivityImg from "../assets/level6-1-conductivity.png";
 
 export type QuestionConfig = {
   id: number;
@@ -162,6 +163,9 @@ D.在水中加維他命C錠 E.在豆漿中加入砂糖 F.奶茶加珍珠
       "對照圖甲與圖乙的數據趨勢，檢驗小強的說法合理嗎？請說明你的看法。",
     scenarioText:
       "小強同學認為：「只要把固體粉末加進水裡攪拌均勻，水就會變得比較濃，濃水就能讓電路流通、燈泡發亮。」\n\n問題：對照圖甲與圖乙的數據趨勢，檢驗小強的說法合理嗎？請說明你的看法。",
+    scenarioImage: level6ConductivityImg,
+    scenarioImageClassName: "max-w-[760px]",
+    scenarioImageZoomable: true,
   },
   {
     id: 14,
