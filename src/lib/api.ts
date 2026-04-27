@@ -1,5 +1,6 @@
 export const API_BASE = (
-  import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? 'http://localhost:3000' : '')
+  import.meta.env.VITE_API_BASE ??
+  (import.meta.env.DEV ? 'http://localhost:3000' : 'https://64fa-140-115-126-37.ngrok-free.app')
 ).replace(/\/$/, '');
 
 export const AUTH_STORAGE_KEY = 'scientific_argumentation_auth';
